@@ -1,3 +1,4 @@
+import sys
 import wx
 import os
 import json
@@ -211,8 +212,12 @@ class MainWindow(wx.Frame):
         hbox_ens_algo = wx.BoxSizer(wx.HORIZONTAL)
         self.st_ens_algo = wx.StaticText(self.panel, label=i18n.tr("ensemble_algorithm"))
         hbox_ens_algo.Add(self.st_ens_algo, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=10)
-        self.cb_ens_algo = wx.ComboBox(self.panel, choices=self.ensemble_algorithms, style=wx.CB_DROPDOWN | wx.CB_READONLY)
-        self.cb_ens_algo.SetValue("avg_wave")
+        if sys.platform == 'darwin':
+            self.cb_ens_algo = wx.Choice(self.panel, choices=self.ensemble_algorithms)
+        else:
+            self.cb_ens_algo = wx.ComboBox(self.panel, choices=self.ensemble_algorithms, style=wx.CB_DROPDOWN | wx.CB_READONLY)
+        self.cb_ens_algo.SetName(i18n.tr("ensemble_algorithm"))
+        self.cb_ens_algo.SetStringSelection("avg_wave")
         self.cb_ens_algo.SetToolTip(i18n.tr("ensemble_algorithm_tooltip"))
         self.cb_ens_algo.Disable()
         self.st_ens_algo.Disable()
@@ -225,11 +230,16 @@ class MainWindow(wx.Frame):
         self.st_preset = wx.StaticText(self.panel, label=i18n.tr("preset_label"))
         self.hbox_preset.Add(self.st_preset, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=25)
         
-        self.cb_preset = wx.ComboBox(self.panel, style=wx.CB_DROPDOWN | wx.CB_READONLY)
+        if sys.platform == 'darwin':
+            self.cb_preset = wx.Choice(self.panel)
+            self.cb_preset.Bind(wx.EVT_CHOICE, self.OnPresetChange)
+        else:
+            self.cb_preset = wx.ComboBox(self.panel, style=wx.CB_DROPDOWN | wx.CB_READONLY)
+            self.cb_preset.Bind(wx.EVT_COMBOBOX, self.OnPresetChange)
+        self.cb_preset.SetName(i18n.tr("preset_label"))
         for key in PresetManager.preset_keys:
             self.cb_preset.Append(PresetManager.get_preset_name(key, i18n))
         self.cb_preset.SetSelection(config.get("preset", 0))
-        self.cb_preset.Bind(wx.EVT_COMBOBOX, self.OnPresetChange)
         self.hbox_preset.Add(self.cb_preset, proportion=1, flag=wx.EXPAND)
         
         self.btn_add_preset = wx.Button(self.panel, label=i18n.tr("preset_btn_create"))
@@ -280,7 +290,11 @@ class MainWindow(wx.Frame):
         hbox4.Add(self.st_chunk_dur, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=8)
         self.chunk_values = [60, 120, 300, 600, 900, 1200]
         self.chunk_choices = ["1 min", "2 min", "5 min", "10 min", "15 min", "20 min"]
-        self.cb_chunk = wx.ComboBox(self.panel, choices=self.chunk_choices, style=wx.CB_DROPDOWN | wx.CB_READONLY, size=(90, -1))
+        if sys.platform == 'darwin':
+            self.cb_chunk = wx.Choice(self.panel, choices=self.chunk_choices, size=(90, -1))
+        else:
+            self.cb_chunk = wx.ComboBox(self.panel, choices=self.chunk_choices, style=wx.CB_DROPDOWN | wx.CB_READONLY, size=(90, -1))
+        self.cb_chunk.SetName(i18n.tr("chunk_duration_label"))
         self.cb_chunk.SetSelection(config.get("chunk_size_idx", 0))
         if not self.chk_chunk.GetValue():
             self.st_chunk_dur.Disable()
@@ -308,12 +322,19 @@ class MainWindow(wx.Frame):
 
         self.silent_threshold_values = [-20, -25, -30, -35, -40, -45, -50, -55, -60, -65, -70, -75, -80]
         self.silent_threshold_choices = [f"{val} dB" for val in self.silent_threshold_values]
-        self.cb_silent_threshold = wx.ComboBox(
-            self.panel,
-            choices=self.silent_threshold_choices,
-            style=wx.CB_DROPDOWN | wx.CB_READONLY,
-            size=(85, -1)
-        )
+        if sys.platform == 'darwin':
+            self.cb_silent_threshold = wx.Choice(
+                self.panel,
+                choices=self.silent_threshold_choices,
+                size=(85, -1)
+            )
+        else:
+            self.cb_silent_threshold = wx.ComboBox(
+                self.panel,
+                choices=self.silent_threshold_choices,
+                style=wx.CB_DROPDOWN | wx.CB_READONLY,
+                size=(85, -1)
+            )
         saved_threshold = config.get("silent_stem_threshold", -50)
         try:
             th_idx = self.silent_threshold_values.index(int(saved_threshold))
@@ -332,24 +353,38 @@ class MainWindow(wx.Frame):
         hbox_format = wx.BoxSizer(wx.HORIZONTAL)
         self.st_format = wx.StaticText(self.panel, label=i18n.tr("output_format"))
         hbox_format.Add(self.st_format, flag=wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=5)
-        self.cb_format = wx.ComboBox(self.panel, choices=['WAV', 'FLAC', 'MP3'], style=wx.CB_DROPDOWN | wx.CB_READONLY)
-        self.cb_format.SetValue(config.get("output_format", 'WAV'))
-        self.cb_format.Bind(wx.EVT_COMBOBOX, self.OnFormatChanged)
+        if sys.platform == 'darwin':
+            self.cb_format = wx.Choice(self.panel, choices=['WAV', 'FLAC', 'MP3'])
+            self.cb_format.Bind(wx.EVT_CHOICE, self.OnFormatChanged)
+        else:
+            self.cb_format = wx.ComboBox(self.panel, choices=['WAV', 'FLAC', 'MP3'], style=wx.CB_DROPDOWN | wx.CB_READONLY)
+            self.cb_format.Bind(wx.EVT_COMBOBOX, self.OnFormatChanged)
+        self.cb_format.SetName(i18n.tr("output_format"))
+        self.cb_format.SetStringSelection(config.get("output_format", 'WAV'))
         hbox_format.Add(self.cb_format, flag=wx.ALIGN_CENTER_VERTICAL)
 
         self.st_quality = wx.StaticText(self.panel, label=i18n.tr("bit_depth_label"))
         hbox_format.Add(self.st_quality, flag=wx.LEFT|wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, border=10)
-        self.cb_quality = wx.ComboBox(self.panel, choices=[], style=wx.CB_DROPDOWN | wx.CB_READONLY)
-        self.cb_quality.Bind(wx.EVT_COMBOBOX, self.OnQualityChanged)
+        if sys.platform == 'darwin':
+            self.cb_quality = wx.Choice(self.panel, choices=[])
+            self.cb_quality.Bind(wx.EVT_CHOICE, self.OnQualityChanged)
+        else:
+            self.cb_quality = wx.ComboBox(self.panel, choices=[], style=wx.CB_DROPDOWN | wx.CB_READONLY)
+            self.cb_quality.Bind(wx.EVT_COMBOBOX, self.OnQualityChanged)
         hbox_format.Add(self.cb_quality, flag=wx.ALIGN_CENTER_VERTICAL)
-        self._update_quality_combo(self.cb_format.GetValue())
+        self._update_quality_combo(self.cb_format.GetStringSelection())
         
         self.chk_preview = wx.CheckBox(self.panel, label=i18n.tr("enable_preview"))
         self.chk_preview.SetValue(config.get("enable_preview", False))
         self.chk_preview.Bind(wx.EVT_CHECKBOX, self.OnTogglePreview)
         hbox_format.Add(self.chk_preview, flag=wx.LEFT|wx.ALIGN_CENTER_VERTICAL, border=20)
         
-        self.cb_preview_mode = wx.ComboBox(self.panel, choices=[i18n.tr("preview_first_30"), i18n.tr("preview_final_30")], style=wx.CB_DROPDOWN | wx.CB_READONLY)
+        preview_choices = [i18n.tr("preview_first_30"), i18n.tr("preview_final_30")]
+        if sys.platform == 'darwin':
+            self.cb_preview_mode = wx.Choice(self.panel, choices=preview_choices)
+        else:
+            self.cb_preview_mode = wx.ComboBox(self.panel, choices=preview_choices, style=wx.CB_DROPDOWN | wx.CB_READONLY)
+        self.cb_preview_mode.SetName(i18n.tr("preview_mode_label"))
         preview_mode = config.get("preview_mode", "first")
         self.cb_preview_mode.SetSelection(1 if preview_mode == "final" else 0)
         self.cb_preview_mode.Show(self.chk_preview.GetValue())
@@ -431,14 +466,14 @@ class MainWindow(wx.Frame):
         self.panel.Layout()
 
     def OnFormatChanged(self, event=None):
-        fmt = self.cb_format.GetValue()
+        fmt = self.cb_format.GetStringSelection()
         self._update_quality_combo(fmt)
         config.set("output_format", fmt)
         self.panel.Layout()
 
     def OnQualityChanged(self, event=None):
-        fmt = self.cb_format.GetValue().upper()
-        val = self.cb_quality.GetValue()
+        fmt = self.cb_format.GetStringSelection().upper()
+        val = self.cb_quality.GetStringSelection()
         if fmt == "WAV":
             config.set("wav_bit_depth", val)
         elif fmt == "FLAC":
@@ -448,7 +483,7 @@ class MainWindow(wx.Frame):
 
     def _update_quality_combo(self, fmt):
         fmt = (fmt or "WAV").upper()
-        current_val = self.cb_quality.GetValue()
+        current_val = self.cb_quality.GetStringSelection()
         self.cb_quality.Clear()
         if fmt == "WAV":
             self.st_quality.SetLabel(i18n.tr("bit_depth_label"))
@@ -457,7 +492,7 @@ class MainWindow(wx.Frame):
             self.cb_quality.Append(choices)
             saved = config.get("wav_bit_depth", "24-bit")
             if saved in choices:
-                self.cb_quality.SetValue(saved)
+                self.cb_quality.SetStringSelection(saved)
             else:
                 self.cb_quality.SetSelection(1)
         elif fmt == "FLAC":
@@ -467,7 +502,7 @@ class MainWindow(wx.Frame):
             self.cb_quality.Append(choices)
             saved = config.get("flac_bit_depth", "24-bit")
             if saved in choices:
-                self.cb_quality.SetValue(saved)
+                self.cb_quality.SetStringSelection(saved)
             else:
                 self.cb_quality.SetSelection(1)
         elif fmt == "MP3":
@@ -477,7 +512,7 @@ class MainWindow(wx.Frame):
             self.cb_quality.Append(choices)
             saved = config.get("mp3_bitrate", "320 kbps")
             if saved in choices:
-                self.cb_quality.SetValue(saved)
+                self.cb_quality.SetStringSelection(saved)
             else:
                 self.cb_quality.SetSelection(0)
 
@@ -528,7 +563,7 @@ class MainWindow(wx.Frame):
             self.cb_silent_threshold.SetName(i18n.tr("silent_stem_threshold_name"))
             self.cb_silent_threshold.SetHelpText(i18n.tr("silent_stem_threshold_name"))
         self.st_format.SetLabel(i18n.tr("output_format"))
-        self._update_quality_combo(self.cb_format.GetValue())
+        self._update_quality_combo(self.cb_format.GetStringSelection())
         self.chk_preview.SetLabel(i18n.tr("enable_preview"))
         
         current_selection = self.cb_preview_mode.GetSelection()
@@ -654,8 +689,8 @@ class MainWindow(wx.Frame):
         model_name_2 = self.display_to_file.get(display_name_2, display_name_2)
 
         # Save user configuration (store the filenames/display names as seen in UI)
-        out_format = self.cb_format.GetValue()
-        quality_val = self.cb_quality.GetValue()
+        out_format = self.cb_format.GetStringSelection()
+        quality_val = self.cb_quality.GetStringSelection()
         
         config.set_many({
             "output_dir": output_dir,
@@ -710,10 +745,10 @@ class MainWindow(wx.Frame):
             preset_key = PresetManager.preset_keys[preset_idx]
             preset_config = PresetManager.get_preset_config(preset_key)
 
-        out_format = self.cb_format.GetValue()
+        out_format = self.cb_format.GetStringSelection()
         use_gpu = self.chk_gpu.GetValue()
         use_ensemble = self.chk_ensemble.GetValue()
-        ensemble_algorithm = self.cb_ens_algo.GetValue()
+        ensemble_algorithm = self.cb_ens_algo.GetStringSelection()
         remove_leading_numbers = self.chk_remove_numbers.GetValue()
         use_subfolder = self.chk_use_subfolder.GetValue()
         delete_silent_stems = self.chk_delete_silent.GetValue()
@@ -909,7 +944,7 @@ class MainWindow(wx.Frame):
     def OnCreatePreset(self, event):
         from gui.custom_preset_dialog import CustomPresetDialog
         model_list = sorted(self.model_manager.get_model_list())
-        dlg = CustomPresetDialog(self, model_list, i18n)
+        dlg = CustomPresetDialog(self, model_list, i18n, self.model_manager)
         if dlg.ShowModal() == wx.ID_OK:
             created_key = dlg.preset_key
             PresetManager.load_custom_presets()

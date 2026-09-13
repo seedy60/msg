@@ -209,7 +209,7 @@
     <div class="container">
         <header>
             <h1>Music Separator</h1>
-            <p>Manuale Utente - v1.7</p>
+            <p>Manuale Utente - v1.8</p>
         </header>
 
         <div class="download-box">
@@ -222,7 +222,7 @@
             <h3>Indice dei Contenuti</h3>
             <ul class="index-list">
                 <li><a href="#installation">1. Installazione</a></li>
-                <li><a href="#new-features">2. Novità nella v1.7</a></li>
+                <li><a href="#new-features">2. Novità nella v1.8</a></li>
                 <li><a href="#basic-usage">3. Uso Base (Modello Singolo)</a></li>
                 <li><a href="#ensemble">4. Native Ensemble</a></li>
                 <li><a href="#presets">5. Preset a Catena &amp; Personalizzati</a></li>
@@ -265,24 +265,21 @@
         </section>
 
         <section id="new-features">
-            <h2>2. Novità nella v1.7 <span class="badge">Nuovo</span></h2>
+            <h2>2. Novità nella v1.8 <span class="badge">Nuovo</span></h2>
             <div class="card">
                 <ul>
-                    <li><strong>Interfaccia a Riga di Comando (CLI / Headless):</strong> Puoi ora eseguire separazioni audio, batch e preset personalizzati direttamente da Terminale o console, ideale per automazioni, DAW e ambienti headless.</li>
-                    <li><strong>Importazione ed Esportazione Preset:</strong> Salva, condividi e ripristina facilmente i tuoi preset personalizzati tramite file JSON, sia dall'interfaccia grafica che da riga di comando.</li>
-                    <li><strong>Preset Ultimate Stems + Drum Split (5 Passi):</strong> Estrazione automatica avanzata di 15 tracce isolate (inclusi archi BowedStrings, lead/backing vocals, basso, chitarra, piano e divisione completa della batteria) con ricostruzione calibrata della base strumentale completa.</li>
-                    <li><strong>Nuovi Modelli AI Specializzati:</strong> Integrazione di modelli per archi (Bowed Strings BS-Roformer), separazione duetto uomo/donna (MelBand Roformer) e sintetizzatori (Lead Synth BS-Roformer).</li>
-                    <li><strong>Supporto Modello MVSep Mega (53 Stem):</strong> Isolamento fino a 53 strumenti in un solo passaggio con gestione intelligente dei silenzi.</li>
-                    <li><strong>Selezione Bit Depth e Bitrate:</strong> Supporto completo per esportazione WAV a 16-bit, 24-bit e 32-bit Float, FLAC a 16-bit e 24-bit, e MP3 con bitrate configurabile (320k, 256k, 192k, 128k) tramite un selettore dinamico accessibile.</li>
-                    <li><strong>Soglia Stem Silenziosi Personalizzabile:</strong> Selettore da -20 dB a -80 dB per l'eliminazione automatica delle tracce vuote.</li>
-                    <li><strong>Refactoring dei Patch di Runtime:</strong> Motore di monkey-patching modulare e ripulito, azzerando leak di memoria ed evitando accumulo di wrapper tra esecuzioni successive.</li>
-                    <li><strong>Efficienza e Robustezza Migliorate:</strong> Scritture atomiche di configurazione, caching della presenza modelli e verifica di integrità dei download.</li>
+                    <li><strong>Preset Personalizzati con Catene Ramificate (Flussi ad Albero / Fork):</strong> I preset personalizzati ora supportano pipeline non-lineari. A partire dal 2° passo puoi selezionare come sorgente audio qualsiasi stem generato nei passi precedenti o l'audio originale, impostare rami terminali con <em>"Nessuno (fine di questo ramo)"</em> e conservare o rinominare gli stem generati in qualsiasi passaggio.</li>
+                    <li><strong>Migliorata Accessibilità VoiceOver su macOS:</strong> Tutti i menu a tendina fissi sono stati convertiti nei widget nativi <code>wx.Choice</code> (mappati su <code>NSPopUpButton</code>), risolvendo le difficoltà storiche di lettura e navigazione con VoiceOver.</li>
+                    <li><strong>Risoluzione Automatica Nomi Modelli:</strong> Risolto l'errore di modello non supportato quando si salvano preset personalizzati selezionando modelli dal catalogo online.</li>
+                    <li><strong>Stabilità Normalizzazione e Auto-Updater:</strong> Risolto il crash durante la normalizzazione audio a -0.1 dBFS ed eliminati i loop di estrazione negli archivi di aggiornamento Windows.</li>
                 </ul>
-                <p>Funzionalità introdotte nella v1.6:</p>
+                <p>Funzionalità introdotte nella v1.7:</p>
                 <ul>
-                    <li><strong>Preset Personalizzati:</strong> Creazione di catene multipasso personalizzate con salvataggio portatile in JSON.</li>
-                    <li><strong>Raggruppamento Modelli Scaricati (Offline).</strong></li>
-                    <li><strong>Accessibilità VoiceOver nativa su macOS.</strong></li>
+                    <li><strong>Interfaccia a Riga di Comando (CLI / Headless):</strong> Puoi ora eseguire separazioni audio, batch e preset personalizzati direttamente da Terminale o console.</li>
+                    <li><strong>Importazione ed Esportazione Preset:</strong> Salva, condividi e ripristina facilmente i tuoi preset personalizzati tramite file JSON.</li>
+                    <li><strong>Preset Ultimate Stems + Drum Split (5 Passi):</strong> Estrazione automatica di 15 tracce isolate con base strumentale completa calibrata.</li>
+                    <li><strong>Nuovi Modelli AI Specializzati &amp; Supporto MVSep Mega (53 Stem).</strong></li>
+                    <li><strong>Selezione Bit Depth e Bitrate Audio:</strong> Esportazione a 16-bit, 24-bit e 32-bit Float per WAV, FLAC e MP3 con bitrate configurabile.</li>
                 </ul>
             </div>
         </section>
@@ -332,8 +329,14 @@
                     <li>Clicca sul pulsante <strong>Crea preset</strong> accanto alla tendina Preset per aprire la finestra di creazione.</li>
                     <li>Inserisci un Nome e scegli il tipo (Modello Singolo o Catena di Modelli).</li>
                     <li><strong>Modello Singolo:</strong> Seleziona il modello, imposta i suffissi di output e facoltativamente spunta "Unisci l'audio rimanente" per combinare gli stem non selezionati.</li>
-                    <li><strong>Catena di Modelli:</strong> Aggiungi passi successivi, seleziona il modello per ogni passo, imposta quale stem passare al passo successivo e usa la griglia di checkbox per scegliere quali altri stem conservare e i relativi suffissi.</li>
-                    <li>Clicca su <strong>Salva Preset</strong>. Il preset apparirà subito nella tendina principale.</li>
+                    <li><strong>Catena di Modelli (Lineare o Ramificata ad Albero):</strong>
+                        <ul>
+                            <li><strong>Audio di Origine:</strong> A partire dal Passo 2, puoi impostare l'audio di input per ciascun passo (lascia il valore predefinito per una catena lineare o seleziona qualsiasi stem ottenuto in precedenza o l'audio originale per creare una biforcazione ad albero).</li>
+                            <li><strong>Passa Stem:</strong> Seleziona lo stem da inoltrare al passo successivo oppure scegli <em>"Nessuno (fine di questo ramo)"</em> per completare un ramo senza inoltro.</li>
+                            <li><strong>Stem da Conservare e Rinominare:</strong> Per ogni passo puoi decidere quali stem salvare su disco e specificare i relativi suffissi di rinomina personalizzati (es. <code>_Lead_Dry</code>).</li>
+                        </ul>
+                    </li>
+                    <li>Clicca su <strong>Salva Preset</strong>. Il preset apparirà subito nella tendina principale e gestirà autonomamente il routing audio.</li>
                     <li>Per eliminare un preset personalizzato, selezionalo dalla tendina e clicca sul pulsante <strong>X</strong>.</li>
                 </ul>
             </div>

@@ -512,6 +512,25 @@ class ModelManager:
                 model_list.append(m)
         return model_list
 
+    def resolve_model_filename(self, name: str) -> str:
+        """Convert a display name (e.g. 'Roformer Model: MelBand Roformer Deux | (by becruily)')
+        to the actual model filename (e.g. 'mel_band_roformer_becruily_deux.ckpt').
+        If the name is already a filename (found in downloadable_models_by_file or ends with
+        a known extension), it is returned as-is."""
+        known_exts = ('.ckpt', '.onnx', '.th', '.pth', '.yaml', '.safetensors')
+        # If it already looks like a filename, return as-is
+        if any(name.endswith(ext) for ext in known_exts):
+            return name
+        # Look up in downloadable_models: {display_name: {filename: url, ...}}
+        if name in self.downloadable_models:
+            info = self.downloadable_models[name]
+            # Return the first key that is a model file (not a yaml config)
+            for fname in info.keys():
+                if any(fname.endswith(ext) for ext in ('.ckpt', '.onnx', '.th', '.pth', '.safetensors')):
+                    return fname
+        # Not found — return the original value and let the separator report the error
+        return name
+
     def get_model_categories(self) -> Dict[str, List[str]]:
         """Wait up to 5 seconds for the model catalog to be ready and return
         models grouped by category: {category_name: [filename, ...]}."""

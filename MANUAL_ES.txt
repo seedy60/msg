@@ -1,6 +1,6 @@
 ===============================================================================
                        MUSIC SEPARATOR - MANUAL DE USUARIO                       
-                       MANUAL EN ESPAÑOL (ES) - v1.7
+                       MANUAL EN ESPAÑOL (ES) - v1.8
 ===============================================================================
 
 Bienvenido a Music separator, una potente herramienta de separacion de audio 
@@ -29,7 +29,22 @@ macOS (Apple Silicon M1/M2/M3/M4):
 - NOTA: FFmpeg está incluido. Si tienes problemas de permisos, consulta el 
   README para instrucciones del comando 'xattr'.
 
-2. NOVEDADES en la v1.7
+2. NOVEDADES en la v1.8
+-------------------------------------------------------------------------------
+- Preajustes Personalizados con Cadenas Ramificadas (Flujos en Árbol / Bifurcaciones):
+  Los preajustes personalizados ahora soportan cadenas no lineales. A partir del
+  paso 2, puedes elegir cualquier stem generado en pasos anteriores (o el audio
+  original) como fuente de audio, finalizar una rama con 'Ninguno (fin de esta rama)'
+  y guardar o renombrar de forma independiente los stems producidos en cada paso.
+- Mayor Accesibilidad VoiceOver en macOS: Sustituidos todos los menús desplegables
+  fijos por controles nativos wx.Choice (NSPopUpButton), garantizando una lectura
+  y navegación fluida y sin bloqueos en VoiceOver.
+- Resolución Automática de Nombres de Modelos: Corrige el error de archivo de modelo
+  no compatible al guardar preajustes personalizados usando títulos descriptivos del catálogo.
+- Correcciones en Normalización y Auto-Actualizador: Corregido UnboundLocalError
+  durante la normalización a -0.1 dBFS y eliminados los bucles de extracción en archivos de actualización.
+
+NOVEDADES en la v1.7:
 -------------------------------------------------------------------------------
 - Interfaz de Línea de Comandos (CLI / Headless): Ahora puedes utilizar Music Separator
   directamente desde el terminal o consola de comandos, ideal para automatizaciones,
@@ -88,11 +103,18 @@ Marca la casilla "Habilitar Ensemble" para combinar las salidas de dos modelos:
 El menú "Preajustes" te permite ejecutar procesos multipaso avanzados en cadena,
 donde la salida de un modelo se envía automáticamente al siguiente modelo.
 
-CREAR PREAJUSTES PERSONALIZADOS:
+CREAR PREAJUSTES PERSONALIZADOS (CADENAS LINEALES Y RAMIFICADAS EN ÁRBOL):
 - Haz clic en el botón "Crear preajuste" junto al menú de preajustes para abrir el diálogo.
 - Elige un Nombre y selecciona entre "Modelo Único" o "Modelos en Cadena".
-- Añade pasos, selecciona modelos, define qué stem pasar y utiliza la cuadrícula de casillas para elegir qué otros stems conservar y sus sufijos correspondientes.
-- Haz clic en Guardar. El preajuste aparecerá de inmediato en el menú principal.
+- Flujos Lineales o Ramificados:
+  * Fuente de Audio: A partir del Paso 2, puedes definir de qué pista tomar el audio
+    de entrada (deja el valor predeterminado para un flujo lineal estándar, o selecciona
+    cualquier stem obtenido en pasos anteriores o el audio original para una bifurcación).
+  * Pasar Stem: Elige qué stem pasar al paso siguiente, o selecciona 'Ninguno (fin de esta rama)'
+    para finalizar una rama sin pasar audio al siguiente paso.
+  * Stems a Conservar y Renombrar: En cada paso, selecciona qué stems guardar en disco
+    y especifica sufijos personalizados de renombrado (ej. _Lead_Dry).
+- Haz clic en Guardar. El preajuste aparecerá de inmediato en el menú principal y gestionará el enrutamiento de audio de forma autónoma.
 - Para eliminarlo, selecciónalo del menú y haz clic en el botón "X" a su lado.
 
 IMPORTAR Y EXPORTAR PREAJUSTES:

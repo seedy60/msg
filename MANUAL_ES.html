@@ -209,7 +209,7 @@
     <div class="container">
         <header>
             <h1>Music Separator</h1>
-            <p>Manual de Usuario - v1.7</p>
+            <p>Manual de Usuario - v1.8</p>
         </header>
 
         <div class="download-box">
@@ -222,7 +222,7 @@
             <h3>Índice de Contenidos</h3>
             <ul class="index-list">
                 <li><a href="#installation">1. Instalación</a></li>
-                <li><a href="#new-features">2. Novedades en la v1.7</a></li>
+                <li><a href="#new-features">2. Novedades en la v1.8</a></li>
                 <li><a href="#basic-usage">3. Uso Básico (Modelo Único)</a></li>
                 <li><a href="#ensemble">4. Native Ensemble</a></li>
                 <li><a href="#presets">5. Preajustes en Cadena y Personalizados</a></li>
@@ -265,24 +265,21 @@
         </section>
 
         <section id="new-features">
-            <h2>2. Novedades en la v1.7 <span class="badge">Nuevo</span></h2>
+            <h2>2. Novedades en la v1.8 <span class="badge">Nuevo</span></h2>
             <div class="card">
                 <ul>
-                    <li><strong>Interfaz de Línea de Comandos (CLI / Headless):</strong> Ahora puedes ejecutar separaciones, lotes y preajustes directamente desde el terminal o consola de comandos, ideal para automatizaciones y entornos headless.</li>
-                    <li><strong>Importación y Exportación de Preajustes:</strong> Guarda, comparte y restaura fácilmente tus preajustes personalizados mediante archivos JSON, tanto desde la interfaz gráfica como por CLI.</li>
-                    <li><strong>Preajuste Ultimate Stems + Drum Split (5 Pasos):</strong> Extracción automatizada avanzada de 15 pistas aisladas (incluyendo cuerdas BowedStrings, lead/backing vocals, bajo, guitarra, piano y división completa de batería) con reconstrucción calibrada de la pista instrumental completa.</li>
-                    <li><strong>Nuevos Modelos de IA Especializados:</strong> Integración de modelos para cuerdas (Bowed Strings BS-Roformer), separación de duetos hombre/mujer (MelBand Roformer) y sintetizadores (Lead Synth BS-Roformer).</li>
-                    <li><strong>Soporte para Modelo MVSep Mega (53 Stems):</strong> Aislamiento de hasta 53 instrumentos en una sola pasada con filtrado inteligente de silendios.</li>
-                    <li><strong>Selección de Profundidad de Bits y Bitrate:</strong> Soporte completo para exportaciones WAV en 16-bit, 24-bit y 32-bit Float, FLAC en 16-bit y 24-bit, y MP3 con tasa de bits configurable (320k, 256k, 192k, 128k) mediante un selector dinámico y accesible.</li>
-                    <li><strong>Umbral de Stems Silenciosos Configurable:</strong> Selector de -20 dB a -80 dB para la eliminación automática de pistas vacías.</li>
-                    <li><strong>Refactorización de Parches de Runtime:</strong> Motor de parches completamente modular, evitando fugas de memoria y acumulación de wrappers entre ejecuciones consecutivas.</li>
-                    <li><strong>Mayor Eficiencia y Robustez:</strong> Escrituras atómicas de configuración, caché inteligente del catálogo y verificación estricta de descargas.</li>
+                    <li><strong>Preajustes Personalizados con Cadenas Ramificadas (Flujos en Árbol / Bifurcaciones):</strong> Los preajustes personalizados ahora admiten cadenas no lineales. A partir del paso 2 puedes seleccionar cualquier stem generado en pasos previos o el audio original como fuente, detener una rama con <em>"Ninguno (fin de esta rama)"</em> y guardar o renombrar libremente los stems producidos en cada paso.</li>
+                    <li><strong>Mayor Accesibilidad VoiceOver en macOS:</strong> Sustituidos todos los menús desplegables fijos por controles nativos <code>wx.Choice</code> (<code>NSPopUpButton</code>), garantizando una navegación fluida en VoiceOver.</li>
+                    <li><strong>Resolución Automática de Nombres de Modelos:</strong> Corrige el error de modelo no compatible al crear preajustes personalizados usando títulos descriptivos del catálogo.</li>
+                    <li><strong>Correcciones de Estabilidad en Normalización y Auto-Actualizador:</strong> Resuelto UnboundLocalError durante la normalización de audio a -0.1 dBFS y eliminados los bucles de extracción en archivos de actualización Windows.</li>
                 </ul>
-                <p>Características anteriores en la versión v1.6:</p>
+                <p>Características introducidas en la versión v1.7:</p>
                 <ul>
-                    <li><strong>Preajustes Personalizables:</strong> Cadenas multipaso guardadas de forma portátil en JSON.</li>
-                    <li><strong>Agrupación de Modelos Descargados (Offline).</strong></li>
-                    <li><strong>Accesibilidad VoiceOver nativa en macOS.</strong></li>
+                    <li><strong>Interfaz de Línea de Comandos (CLI / Headless):</strong> Ejecuta separaciones, lotes y preajustes directamente desde la consola.</li>
+                    <li><strong>Importación y Exportación de Preajustes:</strong> Guarda y comparte preajustes en archivos JSON portátiles.</li>
+                    <li><strong>Preajuste Ultimate Stems + Drum Split (5 Pasos):</strong> Extracción de 15 pistas aisladas con mezcla instrumental completa calibrada.</li>
+                    <li><strong>Nuevos Modelos de IA Especializados &amp; Soporte MVSep Mega (53 Stems).</strong></li>
+                    <li><strong>Selección de Profundidad de Bits y Bitrate:</strong> Soporte completo para WAV (16/24/32-bit Float), FLAC (16/24-bit) y MP3 con calidad configurable.</li>
                 </ul>
             </div>
         </section>
@@ -332,8 +329,14 @@
                     <li>Haz clic en el botón <strong>Crear preajuste</strong> junto al menú de Preajustes para abrir el diálogo de creación.</li>
                     <li>Elige un Nombre y selecciona entre "Modelo Único" o "Modelos en Cadena".</li>
                     <li><strong>Modelo Único:</strong> Selecciona el modelo, define sufijos para los archivos de salida y opcionalmente activa "Mezclar Pistas Restantes" para combinar todos los demás stems.</li>
-                    <li><strong>Modelos en Cadena:</strong> Añade pasos consecutivos, elige un modelo para cada paso, selecciona qué stem pasar al siguiente paso y utiliza la cuadrícula de casillas para elegir qué otros stems conservar y sus sufijos correspondientes.</li>
-                    <li>Haz clic en <strong>Guardar Preajuste</strong>. El preajuste aparecerá de inmediato en el menú principal.</li>
+                    <li><strong>Modelos en Cadena (Cadenas Lineales o Ramificadas en Árbol):</strong>
+                        <ul>
+                            <li><strong>Fuente de Audio:</strong> A partir del Paso 2, puedes elegir el audio de entrada para cada paso (deja el valor predeterminado para un flujo lineal estándar, o selecciona cualquier stem obtenido en pasos anteriores o el audio original para una bifurcación).</li>
+                            <li><strong>Pasar Stem:</strong> Selecciona qué stem pasar al paso siguiente, o elige <em>"Ninguno (fin de esta rama)"</em> para finalizar una rama sin pasar audio al siguiente paso.</li>
+                            <li><strong>Stems a Conservar y Renombrar:</strong> En cada paso, selecciona qué stems guardar en disco y especifica sufijos personalizados de renombrado (ej. <code>_Lead_Dry</code>).</li>
+                        </ul>
+                    </li>
+                    <li>Haz clic en <strong>Guardar Preajuste</strong>. El preajuste aparecerá de inmediato en el menú principal y gestionará el enrutamiento de audio de forma autónoma.</li>
                     <li>Para eliminar un preajuste personalizado, selecciónalo del menú y haz clic en el botón <strong>X</strong> a su lado.</li>
                 </ul>
             </div>

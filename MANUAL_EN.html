@@ -209,7 +209,7 @@
     <div class="container">
         <header>
             <h1>Music Separator</h1>
-            <p>User Manual - v1.7</p>
+            <p>User Manual - v1.8</p>
         </header>
 
         <div class="download-box">
@@ -222,14 +222,14 @@
             <h3>Table of Contents</h3>
             <ul class="index-list">
                 <li><a href="#installation">1. Installation</a></li>
-                <li><a href="#new-features">2. What's New in v1.7</a></li>
+                <li><a href="#new-features">2. What's New in v1.8</a></li>
                 <li><a href="#basic-usage">3. Basic Usage (Single Model)</a></li>
                 <li><a href="#ensemble">4. Native Ensemble</a></li>
-                <li><a href="#presets">5. Chained Presets & Custom Presets</a></li>
-                <li><a href="#output">6. Output Options & Cleanup</a></li>
+                <li><a href="#presets">5. Chained Presets &amp; Custom Presets</a></li>
+                <li><a href="#output">6. Output Options &amp; Cleanup</a></li>
                 <li><a href="#chunking">7. Chunking (OOM Prevention)</a></li>
                 <li><a href="#batch">8. Batch Processing</a></li>
-                <li><a href="#technical">9. Technical Notes & Suffixes</a></li>
+                <li><a href="#technical">9. Technical Notes &amp; Suffixes</a></li>
                 <li><a href="#cli">10. Command-Line Interface (CLI)</a></li>
             </ul>
         </div>
@@ -265,24 +265,21 @@
         </section>
 
         <section id="new-features">
-            <h2>2. What's New in v1.7 <span class="badge">New</span></h2>
+            <h2>2. What's New in v1.8 <span class="badge">New</span></h2>
             <div class="card">
                 <ul>
-                    <li><strong>Command-Line Interface (CLI / Headless Mode):</strong> You can now run audio stem separation, batch jobs, custom presets, and model downloads directly from the command prompt or terminal without launching the GUI.</li>
-                    <li><strong>Preset Import and Export:</strong> Easily backup, share, and restore your custom presets via JSON files directly from the GUI or the command line.</li>
-                    <li><strong>5-Pass Ultimate Stems + Drum Split Preset:</strong> Advanced automated pipeline that extracts 15 isolated tracks (including Bowed Strings, lead/backing vocals, bass, guitar, piano, and full drum kit separation) with a calibrated full instrumental mix.</li>
-                    <li><strong>New Specialized AI Models:</strong> Integrated Bowed Strings BS-Roformer, Male/Female Vocal Duet MelBand Roformer, and Lead Synth BS-Roformer models.</li>
-                    <li><strong>MVSep Mega 53 Stems Model Support:</strong> Isolate up to 53 individual musical instruments in a single pass with intelligent silence filtering.</li>
-                    <li><strong>Audio Bit Depth &amp; Bitrate Selection:</strong> Complete support for WAV 16-bit, 24-bit, and 32-bit Float, FLAC 16-bit and 24-bit, and custom MP3 bitrates (320k, 256k, 192k, 128k) via an accessible dynamic selector.</li>
-                    <li><strong>Configurable Silent Stem Threshold:</strong> Custom silence threshold from -20 dB down to -80 dB for automated empty track removal.</li>
-                    <li><strong>Runtime Monkey-Patches Refactoring:</strong> Modular monkey-patching engine eliminating memory leaks and avoiding wrapper stacking across consecutive runs.</li>
-                    <li><strong>Enhanced Performance &amp; Robustness:</strong> Atomic configuration file writes, smart model catalog caching, and strict download integrity verification.</li>
+                    <li><strong>Branched &amp; Tree-Structured Custom Presets (Fork / Tree Pipelines):</strong> Custom presets now support non-linear chains. Starting from step 2, you can select any stem generated in earlier passes or the original input as your audio source, stop a branch with <em>"None (end of this branch)"</em>, and independently save and rename stems produced at any step.</li>
+                    <li><strong>Enhanced VoiceOver Accessibility on macOS:</strong> Replaced all fixed dropdown controls with native <code>wx.Choice</code> (<code>NSPopUpButton</code>) widgets for seamless screen reader navigation.</li>
+                    <li><strong>Automatic Model Name Resolution:</strong> Fixed unsupported model file errors when creating custom presets from descriptive catalog titles.</li>
+                    <li><strong>Normalization &amp; Auto-Updater Bug Fixes:</strong> Resolved UnboundLocalError during audio normalization at -0.1 dBFS and eliminated extraction loops with wrapped 7z updates.</li>
                 </ul>
-                <p>Previous features in v1.6:</p>
+                <p>Features introduced in v1.7:</p>
                 <ul>
-                    <li><strong>User-Customizable Presets:</strong> Multi-pass chained presets saved portably in JSON.</li>
-                    <li><strong>Downloaded Models Grouping (Offline).</strong></li>
-                    <li><strong>Native VoiceOver Accessibility on macOS.</strong></li>
+                    <li><strong>Command-Line Interface (CLI / Headless Mode):</strong> Run separations, batch jobs, and presets directly from terminal.</li>
+                    <li><strong>Preset Import and Export:</strong> Easily backup and share custom presets via portable JSON files.</li>
+                    <li><strong>5-Pass Ultimate Stems + Drum Split Preset:</strong> Automated extraction of 15 isolated tracks with calibrated full instrumental mix.</li>
+                    <li><strong>New Specialized AI Models &amp; MVSep Mega 53 Stems Support.</strong></li>
+                    <li><strong>Audio Bit Depth &amp; Bitrate Selection:</strong> Complete support for WAV (16/24/32-bit Float), FLAC (16/24-bit), and MP3 quality presets.</li>
                 </ul>
             </div>
         </section>
@@ -332,8 +329,14 @@
                     <li>Click the <strong>Create Preset</strong> button next to the Preset dropdown to open the Creator Dialog.</li>
                     <li>Enter a Name and choose the type (Single Model or Chained Models).</li>
                     <li><strong>Single Model:</strong> Select the model, define suffix mappings for output files, and optionally enable "Mix Remaining" to combine all other stems.</li>
-                    <li><strong>Chained Models:</strong> Add consecutive steps, choose a model for each step, select which stem to pass to the next step, and use the checklist grid to choose which other stems to keep and their custom suffixes.</li>
-                    <li>Click <strong>Save Preset</strong>. The preset will immediately appear in the dropdown.</li>
+                    <li><strong>Chained Models (Linear or Branched Tree Pipelines):</strong>
+                        <ul>
+                            <li><strong>Audio Source:</strong> Starting from Step 2, you can choose the input audio for each pass (leave default for linear sequential flow, or select any stem generated in earlier steps or the original input audio to branch out).</li>
+                            <li><strong>Pass Stem:</strong> Select which stem forwards to the next step, or choose <em>"None (end of this branch)"</em> to terminate a branch without passing audio downstream.</li>
+                            <li><strong>Stems to Keep and Rename:</strong> For every pass, select which stems to save to disk and specify custom filename suffixes (e.g. <code>_Lead_Dry</code>).</li>
+                        </ul>
+                    </li>
+                    <li>Click <strong>Save Preset</strong>. The preset will immediately appear in the dropdown and handle all audio routing automatically.</li>
                     <li>To delete a custom preset, select it from the dropdown and click the <strong>X</strong> button.</li>
                 </ul>
             </div>

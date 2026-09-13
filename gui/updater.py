@@ -232,13 +232,32 @@ def _apply_update_and_exit(parent, archive_path):
         exe_path = sys.executable if getattr(sys, 'frozen', False) else os.path.join(app_dir, "Music separator.exe")
         
         if getattr(sys, 'frozen', False):
-            # In PyInstaller, the ffmpeg_bin directory is bundled inside sys._MEIPASS or _internal
-            original_7z_path = os.path.join(getattr(sys, '_MEIPASS', ''), "ffmpeg_bin", "7za.exe")
-            if not os.path.exists(original_7z_path):
+            # In PyInstaller, 7za.exe is bundled inside _internal\ffmpeg_bin or alongside exe
+            candidates = [
+                os.path.join(os.path.dirname(exe_path), "_internal", "ffmpeg_bin", "7za.exe"),
+                os.path.join(os.path.dirname(exe_path), "ffmpeg_bin", "7za.exe"),
+                os.path.join(getattr(sys, '_MEIPASS', ''), "ffmpeg_bin", "7za.exe"),
+            ]
+            original_7z_path = ""
+            for c in candidates:
+                if c and os.path.exists(c):
+                    original_7z_path = c
+                    break
+            if not original_7z_path:
                 original_7z_path = os.path.join(os.path.dirname(exe_path), "_internal", "ffmpeg_bin", "7za.exe")
         else:
             # Fallback for development/venv setup
-            original_7z_path = os.path.join(app_dir, "ffmpeg_bin", "7za.exe")
+            candidates = [
+                os.path.join(app_dir, "ffmpeg_bin", "7za.exe"),
+                os.path.join(app_dir, "_internal", "ffmpeg_bin", "7za.exe"),
+            ]
+            original_7z_path = ""
+            for c in candidates:
+                if c and os.path.exists(c):
+                    original_7z_path = c
+                    break
+            if not original_7z_path:
+                original_7z_path = os.path.join(app_dir, "ffmpeg_bin", "7za.exe")
 
         # Normalize all paths for batch execution
         exe_path = os.path.normpath(exe_path)
@@ -273,14 +292,19 @@ if errorlevel 1 (
     goto :fail
 )
 if exist "{app_dir}\\_internal" rmdir /s /q "{app_dir}\\_internal"
-set "HAS_DIR="
+set "SRC_DIR=%TEMP%\\ms_update_temp"
+set "DIR_COUNT=0"
+set "FILE_COUNT=0"
+set "SINGLE_DIR="
 for /d %%i in ("%TEMP%\\ms_update_temp\\*") do (
-    set "HAS_DIR=1"
-    xcopy "%%i\\*" "{app_dir}" /s /e /y /h /r >nul
+    set /a DIR_COUNT+=1
+    set "SINGLE_DIR=%%i"
 )
-if not defined HAS_DIR (
-    xcopy "%TEMP%\\ms_update_temp\\*" "{app_dir}" /s /e /y /h /r >nul
+for %%i in ("%TEMP%\\ms_update_temp\\*") do (
+    set /a FILE_COUNT+=1
 )
+if %DIR_COUNT%==1 if %FILE_COUNT%==0 set "SRC_DIR=%SINGLE_DIR%"
+xcopy "%SRC_DIR%\\*" "{app_dir}" /s /e /y /h /r >nul
 rmdir /s /q "%TEMP%\\ms_update_temp" >nul 2>&1
 echo [%date% %time%] Update OK, restarting >> "%UPDATER_LOG%"
 start "" "{exe_path}"

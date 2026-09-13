@@ -1,6 +1,6 @@
 ===============================================================================
                        MUSIC SEPARATOR - MANUALE UTENTE                       
-                       MANUALE ITALIANO (IT) - v1.7
+                       MANUALE ITALIANO (IT) - v1.8
 ===============================================================================
 
 Benvenuto in Music separator, un potente strumento per la separazione audio 
@@ -29,8 +29,22 @@ macOS (Apple Silicon M1/M2/M3/M4):
 - NOTA: FFmpeg e' incluso nel pacchetto. In caso di blocchi di sicurezza, 
   consulta il README per le istruzioni sul comando 'xattr'.
 
-2. NOVITÀ nella v1.7
+2. NOVITÀ nella v1.8
 -------------------------------------------------------------------------------
+- Preset Personalizzati con Catene Ramificate (Flussi ad Albero / Fork):
+  Ora i preset personalizzati possono gestire flussi non-lineari. A partire dal
+  2° passo puoi scegliere qualsiasi stem dei passi precedenti (o l'audio originale)
+  come sorgente, arrestare un ramo con 'Nessuno (fine di questo ramo)' e salvare
+  o rinominare autonomamente gli stem di ciascun passaggio.
+- Migliorata Accessibilità VoiceOver su macOS: Sostituiti tutti i menu a tendina
+  fissi con controlli nativi wx.Choice (NSPopUpButton), garantendo una lettura
+  e navigazione fluida e impeccabile con VoiceOver.
+- Risoluzione Automatica Nomi Modelli: Risolto l'errore di modello non supportato
+  quando si creano preset personalizzati selezionando modelli dal catalogo online.
+- Correzione Bug Normalizzazione e Auto-Updater: Corretto il crash durante la
+  normalizzazione audio a -0.1 dBFS ed eliminati i loop di estrazione negli archivi di update.
+
+NOVITÀ nella v1.7:
 - Interfaccia a Riga di Comando (CLI / Headless): Ora puoi utilizzare Music Separator
   direttamente da Terminale o prompt dei comandi, ideale per automazioni, script
   e integrazione in DAW senza dover aprire l'interfaccia grafica.
@@ -89,11 +103,18 @@ Spunta la casella "Abilita Ensemble" per unire i risultati di due modelli:
 Il menu "Preset" consente di avviare elaborazioni multipasso avanzate (catene), 
 in cui l'output di un modello viene automaticamente inviato al modello successivo.
 
-CREARE PRESET PERSONALIZZATI:
+CREARE PRESET PERSONALIZZATI (CATENE LINEARI E RAMIFICATE AD ALBERO):
 - Clicca sul pulsante "Crea preset" accanto alla tendina preset per aprire il Dialog.
 - Imposta un Nome e scegli tra "Modello Singolo" o "Modelli in Catena".
-- Aggiungi passi, assegna i modelli, decidi quale stem passare e usa la griglia di checkbox per scegliere quali altri stem conservare e i relativi suffissi.
-- Clicca su Salva. Il preset apparirà subito nel menu principale.
+- Flussi Lineari o Ramificati:
+  * Audio di Origine: a partire dal Passo 2, puoi impostare da quale traccia attingere
+    l'audio di input (lascia il valore predefinito per una catena lineare, oppure
+    seleziona qualsiasi stem generato nei passi precedenti o l'audio originale per un fork).
+  * Passa Stem: scegli lo stem da inoltrare al passo successivo, oppure seleziona
+    'Nessuno (fine di questo ramo)' per completare una diramazione senza passaggio audio.
+  * Stem da Conservare e Rinominare: per ciascun passo puoi selezionare quali stem
+    salvare su disco e specificare i suffissi di rinomina personalizzati (es. _Lead_Dry).
+- Clicca su Salva. Il preset apparirà subito nel menu principale e gestirà autonomamente il routing.
 - Per eliminare, seleziona il preset custom e premi il pulsante "X".
 
 IMPORTARE ED ESPORTARE PRESET:

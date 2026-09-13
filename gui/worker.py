@@ -433,11 +433,13 @@ class SeparationThread(threading.Thread):
                             keep_name = self.preset_config.get(f"m{step_idx}_keep_name") if self.preset_config else None
                             keep_pass_stem = self.preset_config.get(f"m{step_idx}_keep_pass_stem_name") if self.preset_config else None
                             gain_db = float(self.preset_config.get(f"m{step_idx}_gain_db", 0.0)) if self.preset_config else 0.0
+                            source = self.preset_config.get(f"m{step_idx}_source", "") if self.preset_config else ""
 
                             chain_steps.append({
                                 "step_num": step_idx,
                                 "model": m_name,
                                 "pass_stem": p_stem,
+                                "source": source,
                                 "rename_map": rename_map,
                                 "keep_name": keep_name,
                                 "keep_pass_stem_name": keep_pass_stem,
@@ -445,6 +447,7 @@ class SeparationThread(threading.Thread):
                             })
                             step_idx += 1
 
+                        stem_cache = {}
                         current_pass_file = safe_input_file
                         for i, step in enumerate(chain_steps):
                             step_num = step["step_num"]
@@ -454,7 +457,28 @@ class SeparationThread(threading.Thread):
                             keep_name = step["keep_name"]
                             keep_pass_stem_name = step["keep_pass_stem_name"]
                             gain_db = step.get("gain_db", 0.0)
+                            step_source = step.get("source", "")
                             is_last_step = (i == len(chain_steps) - 1)
+
+                            # Resolve source audio if specified (fork/branching support)
+                            if step_source == "input":
+                                current_pass_file = safe_input_file
+                            elif step_source and step_source.startswith("step_"):
+                                try:
+                                    src_part, src_stem = step_source.split(":", 1)
+                                    src_step_num = int(src_part.replace("step_", ""))
+                                    if src_step_num in stem_cache:
+                                        found_cached = None
+                                        for s_name, s_path in stem_cache[src_step_num].items():
+                                            if stems_are_equivalent(s_name, src_stem):
+                                                found_cached = s_path
+                                                break
+                                        if found_cached and os.path.exists(found_cached):
+                                            current_pass_file = found_cached
+                                        else:
+                                            self.post_log(f"Notice: Source stem '{src_stem}' from step {src_step_num} not found. Using default flow.")
+                                except Exception as e:
+                                    logger.warning(f"Failed to resolve step source '{step_source}': {e}")
 
                             def _copy_with_gain(src, dst, g):
                                 if g != 0.0:
@@ -479,6 +503,14 @@ class SeparationThread(threading.Thread):
                                 step_output_files = separator.separate(current_pass_file)
                             finally:
                                 sys.stderr = old_stderr
+
+                            # Cache all stems produced in this step for potential downstream branch consumption
+                            stem_cache[step_num] = {}
+                            for f in step_output_files:
+                                st = stem_from_filename(f)
+                                cached_copy = os.path.join(tempfile.gettempdir(), f"branch_cache_s{step_num}_{st}_{uuid.uuid4().hex[:6]}.wav")
+                                shutil.copy2(os.path.join(temp_dir, f), cached_copy)
+                                stem_cache[step_num][st] = cached_copy
 
                             next_pass_file = None
                             for f in step_output_files:
@@ -530,15 +562,25 @@ class SeparationThread(threading.Thread):
                                 self.post_log(i18n.tr("log_fallback_stem", file=os.path.basename(next_pass_file), stem=pass_stem))
 
                             if not is_last_step:
-                                if not next_pass_file:
+                                next_step_has_source = (i + 1 < len(chain_steps) and bool(chain_steps[i + 1].get("source")))
+                                if not next_pass_file and not next_step_has_source:
                                     self.post_log(i18n.tr("log_missing_pass_stem", stem=pass_stem))
                                     break
-                                # Save next_pass_file to a safe persistent temp path for the next step before temp_dir is removed
-                                persistent_next_pass = os.path.join(tempfile.gettempdir(), f"chain_pass_{uuid.uuid4().hex[:8]}.wav")
-                                shutil.copy2(next_pass_file, persistent_next_pass)
-                                current_pass_file = persistent_next_pass
+                                if next_pass_file:
+                                    persistent_next_pass = os.path.join(tempfile.gettempdir(), f"chain_pass_{uuid.uuid4().hex[:8]}.wav")
+                                    shutil.copy2(next_pass_file, persistent_next_pass)
+                                    current_pass_file = persistent_next_pass
 
                             shutil.rmtree(temp_dir, ignore_errors=True)
+
+                        # Clean up cached branch stems
+                        for s_dict in stem_cache.values():
+                            for c_path in s_dict.values():
+                                try:
+                                    if os.path.exists(c_path):
+                                        os.remove(c_path)
+                                except Exception:
+                                    pass
 
                         # Post-mix rules (e.g. summing stems or subtracting vocals from input mix)
                         post_mix_rules = self.preset_config.get("post_mix", []) if self.preset_config else []
@@ -813,7 +855,6 @@ class SeparationThread(threading.Thread):
                                 self.post_log(i18n.tr("status_converting", file=file, format=f"FLAC ({target_bd})"))
                                 cmd = ["ffmpeg", "-y", "-i", old_path, "-c:a", "flac", "-sample_fmt", sample_fmt, new_path]
                             else: # MP3
-                                import re
                                 mp3_b = re.sub(r'[^0-9]', '', str(self.bitrate))
                                 b_arg = f"{mp3_b}k" if mp3_b else "320k"
                                 self.post_log(i18n.tr("status_converting", file=file, format=f"MP3 ({b_arg})"))

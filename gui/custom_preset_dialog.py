@@ -1,14 +1,16 @@
+import sys
 import wx
 import os
 from gui.preset_manager import PresetManager
 from gui.audio_utils import get_model_stems
 
 class CustomPresetDialog(wx.Dialog):
-    def __init__(self, parent, model_list, i18n):
+    def __init__(self, parent, model_list, i18n, model_manager=None):
         super().__init__(parent, title=i18n.tr("preset_create_title"), size=(550, 650),
                          style=wx.DEFAULT_DIALOG_STYLE | wx.RESIZE_BORDER)
         self.model_list = model_list
         self.i18n = i18n
+        self.model_manager = model_manager
         self.steps = [] # List of dicts representing chain steps GUI elements
         
         self.init_ui()
@@ -23,6 +25,12 @@ class CustomPresetDialog(wx.Dialog):
 
     def get_model_stems(self, model_name: str) -> list:
         return get_model_stems(model_name)
+
+    def _resolve(self, name: str) -> str:
+        """Resolve a model display name to its actual filename using model_manager if available."""
+        if self.model_manager:
+            return self.model_manager.resolve_model_filename(name)
+        return name
 
     def init_ui(self):
 
@@ -86,7 +94,13 @@ class CustomPresetDialog(wx.Dialog):
         sizer = wx.BoxSizer(wx.VERTICAL)
         
         lbl_model = wx.StaticText(self.panel_single, label=self.i18n.tr("preset_model_select"))
-        self.cb_single_model = wx.ComboBox(self.panel_single, style=wx.CB_DROPDOWN | wx.CB_READONLY)
+        if sys.platform == 'darwin':
+            self.cb_single_model = wx.Choice(self.panel_single)
+            self.cb_single_model.Bind(wx.EVT_CHOICE, lambda evt: self.update_single_rename_fields())
+        else:
+            self.cb_single_model = wx.ComboBox(self.panel_single, style=wx.CB_DROPDOWN | wx.CB_READONLY)
+            self.cb_single_model.Bind(wx.EVT_COMBOBOX, lambda evt: self.update_single_rename_fields())
+        self.cb_single_model.SetName(self.i18n.tr("preset_model_select"))
         self.cb_single_model.AppendItems(self.model_list)
         
         sizer.Add(lbl_model, flag=wx.TOP, border=5)
@@ -115,7 +129,6 @@ class CustomPresetDialog(wx.Dialog):
         
         self.panel_single.SetSizer(sizer)
         
-        self.cb_single_model.Bind(wx.EVT_COMBOBOX, lambda evt: self.update_single_rename_fields())
         if self.model_list:
             self.cb_single_model.SetSelection(0)
             self.update_single_rename_fields()
@@ -125,7 +138,7 @@ class CustomPresetDialog(wx.Dialog):
         self.single_rename_sizer.Clear(True)
         self.single_rename_fields = {}
         
-        model = self.cb_single_model.GetValue()
+        model = self.cb_single_model.GetStringSelection()
         stems = self.get_model_stems(model)
         
         lbl_rename = wx.StaticText(self.single_rename_container, label=self.i18n.tr("preset_rename_title"))
@@ -171,18 +184,6 @@ class CustomPresetDialog(wx.Dialog):
         
         sizer.Add(btn_box, flag=wx.ALIGN_RIGHT | wx.BOTTOM, border=15)
         
-        # Last Step Rename Map Section
-        self.box_last_rename = wx.StaticBox(self.panel_chain, label=self.i18n.tr("preset_rename_title"))
-        last_rename_sizer = wx.StaticBoxSizer(self.box_last_rename, wx.VERTICAL)
-        
-        self.chain_rename_container = wx.Panel(self.panel_chain)
-        self.chain_rename_sizer = wx.BoxSizer(wx.VERTICAL)
-        self.chain_rename_container.SetSizer(self.chain_rename_sizer)
-        self.chain_rename_fields = {}
-        
-        last_rename_sizer.Add(self.chain_rename_container, flag=wx.EXPAND | wx.ALL, border=5)
-        sizer.Add(last_rename_sizer, flag=wx.EXPAND)
-        
         self.panel_chain.SetSizer(sizer)
         
         # Add initial 2 steps by default
@@ -205,7 +206,7 @@ class CustomPresetDialog(wx.Dialog):
         self.txt_mix_target.Enable(enabled)
 
     def on_add_step(self, event):
-        if len(self.steps) < 4:  # Max 4 steps
+        if len(self.steps) < 5:  # Max 5 steps
             self.add_chain_step_ui()
         
     def on_remove_step(self, event):
@@ -213,6 +214,10 @@ class CustomPresetDialog(wx.Dialog):
             step_ui = self.steps.pop()
             
             # Destroy all windows/widgets associated with the step
+            if step_ui.get("lbl_source"):
+                step_ui["lbl_source"].Destroy()
+            if step_ui.get("cb_source"):
+                step_ui["cb_source"].Destroy()
             step_ui["cb_model"].Destroy()
             step_ui["cb_pass"].Destroy()
             step_ui["rename_container"].Destroy()
@@ -227,10 +232,8 @@ class CustomPresetDialog(wx.Dialog):
                 
             # Remove sizer from parent steps_sizer
             self.steps_sizer.Remove(step_ui["box_sizer"])
-
             
             self.update_steps_visibility()
-            self.update_chain_rename_fields()
             self.steps_sizer.Layout()
             self.panel_chain.Layout()
             self.Layout()
@@ -241,17 +244,44 @@ class CustomPresetDialog(wx.Dialog):
         box = wx.StaticBox(self.steps_container, label=self.i18n.tr("preset_step_title").format(num=step_num))
         box_sizer = wx.StaticBoxSizer(box, wx.VERTICAL)
         
+        # Source audio selector (for step 2 and beyond)
+        lbl_source = None
+        cb_source = None
+        if step_num > 1:
+            lbl_source = wx.StaticText(self.steps_container, label=self.i18n.tr("preset_source_label"))
+            if sys.platform == 'darwin':
+                cb_source = wx.Choice(self.steps_container)
+                cb_source.Bind(wx.EVT_CHOICE, self.on_source_change_evt)
+            else:
+                cb_source = wx.ComboBox(self.steps_container, style=wx.CB_DROPDOWN | wx.CB_READONLY)
+                cb_source.Bind(wx.EVT_COMBOBOX, self.on_source_change_evt)
+            cb_source.SetName(self.i18n.tr("preset_source_label"))
+            box_sizer.Add(lbl_source, flag=wx.TOP, border=2)
+            box_sizer.Add(cb_source, flag=wx.EXPAND | wx.BOTTOM, border=8)
+
         # Model selector
         lbl_model = wx.StaticText(self.steps_container, label=self.i18n.tr("preset_model_select"))
-        cb_model = wx.ComboBox(self.steps_container, style=wx.CB_DROPDOWN | wx.CB_READONLY)
+        if sys.platform == 'darwin':
+            cb_model = wx.Choice(self.steps_container)
+            cb_model.Bind(wx.EVT_CHOICE, self.on_step_model_change_evt)
+        else:
+            cb_model = wx.ComboBox(self.steps_container, style=wx.CB_DROPDOWN | wx.CB_READONLY)
+            cb_model.Bind(wx.EVT_COMBOBOX, self.on_step_model_change_evt)
+        cb_model.SetName(self.i18n.tr("preset_model_select"))
         cb_model.AppendItems(self.model_list)
         
         box_sizer.Add(lbl_model, flag=wx.TOP, border=2)
         box_sizer.Add(cb_model, flag=wx.EXPAND | wx.BOTTOM, border=8)
         
-        # Intermediate settings (not needed on the very last step, but we define them and conditionally read them)
+        # Intermediate settings
         lbl_pass = wx.StaticText(self.steps_container, label=self.i18n.tr("preset_pass_stem"))
-        cb_pass = wx.Choice(self.steps_container)
+        if sys.platform == 'darwin':
+            cb_pass = wx.Choice(self.steps_container)
+            cb_pass.Bind(wx.EVT_CHOICE, self.on_pass_stem_change_evt)
+        else:
+            cb_pass = wx.ComboBox(self.steps_container, style=wx.CB_DROPDOWN | wx.CB_READONLY)
+            cb_pass.Bind(wx.EVT_COMBOBOX, self.on_pass_stem_change_evt)
+        cb_pass.SetName(self.i18n.tr("preset_pass_stem"))
         
         lbl_keep = wx.StaticText(self.steps_container, label=self.i18n.tr("preset_keep_rename_title"))
         rename_container = wx.Panel(self.steps_container)
@@ -265,12 +295,13 @@ class CustomPresetDialog(wx.Dialog):
         
         self.steps_sizer.Add(box_sizer, flag=wx.EXPAND | wx.BOTTOM, border=10)
         
-        cb_model.Bind(wx.EVT_COMBOBOX, self.on_step_model_change_evt)
-        cb_pass.Bind(wx.EVT_CHOICE, self.on_pass_stem_change_evt)
-        
         step_dict = {
             "box_sizer": box_sizer,
             "static_box": box,
+            "lbl_source": lbl_source,
+            "cb_source": cb_source,
+            "source_options": [],
+            "source_value": "",
             "lbl_model": lbl_model,
             "cb_model": cb_model,
             "lbl_pass": lbl_pass,
@@ -288,13 +319,71 @@ class CustomPresetDialog(wx.Dialog):
             self.on_step_model_change_by_step(step_dict)
             
         self.update_steps_visibility()
-        self.update_chain_rename_fields()
         
         # Update layout
         self.steps_sizer.Layout()
         self.panel_chain.Layout()
         self.Layout()
         
+    def on_source_change_evt(self, event):
+        cb = event.GetEventObject()
+        for step_ui in self.steps:
+            if step_ui.get("cb_source") == cb:
+                sel = cb.GetSelection()
+                opts = step_ui.get("source_options", [])
+                if 0 <= sel < len(opts):
+                    step_ui["source_value"] = opts[sel][1]
+                break
+
+    def update_all_source_choices(self):
+        for i in range(1, len(self.steps)):
+            self.update_source_choices_for_step(i)
+
+    def update_source_choices_for_step(self, step_idx):
+        step_ui = self.steps[step_idx]
+        cb_source = step_ui.get("cb_source")
+        if not cb_source:
+            return
+
+        current_val = step_ui.get("source_value", "")
+        options = []
+        none_label = self.i18n.tr("preset_pass_none")
+
+        # 1. Default: pass stem of the immediately preceding step
+        prev_step = self.steps[step_idx - 1]
+        prev_pass = prev_step["cb_pass"].GetStringSelection()
+        if prev_pass and prev_pass != none_label:
+            disp = f"{self.i18n.tr('preset_source_step').format(num=step_idx, stem=prev_pass)} (default)"
+            options.append((disp, f"step_{step_idx}:{prev_pass}"))
+
+        # 2. Other stems from all previous steps (1 .. step_idx)
+        for k in range(step_idx):
+            st_ui = self.steps[k]
+            mod = st_ui["cb_model"].GetStringSelection()
+            stems = self.get_model_stems(mod) if mod else []
+            for s in stems:
+                code = f"step_{k+1}:{s}"
+                if not any(c == code for _, c in options):
+                    disp = self.i18n.tr("preset_source_step").format(num=k+1, stem=s)
+                    options.append((disp, code))
+
+        # 3. Original input audio
+        options.append((self.i18n.tr("preset_source_original"), "input"))
+
+        step_ui["source_options"] = options
+        cb_source.Clear()
+        for disp, _ in options:
+            cb_source.Append(disp)
+
+        matched_idx = 0
+        if current_val:
+            for idx, (_, code) in enumerate(options):
+                if code == current_val:
+                    matched_idx = idx
+                    break
+        cb_source.SetSelection(matched_idx)
+        step_ui["source_value"] = options[matched_idx][1] if options else ""
+
     def on_step_model_change_evt(self, event):
         cb_model = event.GetEventObject()
         step_ui = None
@@ -309,23 +398,25 @@ class CustomPresetDialog(wx.Dialog):
             
         self.on_step_model_change_by_step(step_ui)
         
-        # If this is the last step, update the final rename fields
-        if idx == len(self.steps) - 1:
-            self.update_chain_rename_fields()
-            
     def on_step_model_change_by_step(self, step_ui):
         cb_model = step_ui["cb_model"]
         cb_pass = step_ui["cb_pass"]
         
-        model = cb_model.GetValue()
+        model = cb_model.GetStringSelection()
         stems = self.get_model_stems(model)
         
         cb_pass.Clear()
-        cb_pass.AppendItems(stems)
+        cb_pass.Append(self.i18n.tr("preset_pass_none"))
+        for s in stems:
+            cb_pass.Append(s)
+            
         if stems:
+            cb_pass.SetSelection(1) # Default to first real stem
+        else:
             cb_pass.SetSelection(0)
             
         self.update_step_rename_fields(step_ui)
+        self.update_all_source_choices()
 
     def on_pass_stem_change_evt(self, event):
         cb_pass = event.GetEventObject()
@@ -345,36 +436,38 @@ class CustomPresetDialog(wx.Dialog):
             return
             
         pass_stem = cb_pass.GetString(sel_idx)
+        none_label = self.i18n.tr("preset_pass_none")
         if "keep_controls" in step_ui:
             for stem, (chk, txt) in step_ui["keep_controls"].items():
-                is_pass = (stem == pass_stem)
+                is_pass = (pass_stem != none_label and stem == pass_stem)
                 chk.SetValue(not is_pass)
                 txt.Enable(not is_pass)
+                
+        self.update_all_source_choices()
 
     def update_step_rename_fields(self, step_ui):
         step_ui["rename_sizer"].Clear(True)
         step_ui["keep_controls"] = {}
         
-        model = step_ui["cb_model"].GetValue()
+        model = step_ui["cb_model"].GetStringSelection()
         stems = self.get_model_stems(model)
         
         grid = wx.FlexGridSizer(cols=2, hgap=10, vgap=6)
         grid.AddGrowableCol(1, 1)
         
         pass_stem = step_ui["cb_pass"].GetString(step_ui["cb_pass"].GetSelection()) if step_ui["cb_pass"].GetSelection() != wx.NOT_FOUND else ""
+        none_label = self.i18n.tr("preset_pass_none")
         
         for stem in stems:
-            chk_label = self.i18n.tr("preset_keep_stem_label").format(stem=stem)
-            chk = wx.CheckBox(step_ui["rename_container"], label=chk_label)
+            is_pass = (pass_stem != none_label and stem == pass_stem)
             
-            is_pass = (stem == pass_stem)
+            chk = wx.CheckBox(step_ui["rename_container"], label=stem)
             chk.SetValue(not is_pass)
             
             txt = wx.TextCtrl(step_ui["rename_container"])
             txt.SetHint(f"e.g. _{stem.capitalize()}")
-            txt.SetValue(f"_{stem.capitalize()}")
-            txt.SetName(self.i18n.tr("preset_suffix_accessible_name").format(stem=stem))
             txt.Enable(not is_pass)
+            txt.SetName(self.i18n.tr("preset_suffix_accessible_name").format(stem=stem))
             
             chk.Bind(wx.EVT_CHECKBOX, lambda evt, c=chk, t=txt: t.Enable(c.GetValue()))
             
@@ -393,50 +486,17 @@ class CustomPresetDialog(wx.Dialog):
     def update_steps_visibility(self):
         for i, step_ui in enumerate(self.steps):
             is_last = (i == len(self.steps) - 1)
-            show_intermediate = not is_last
-            step_ui["cb_pass"].Enable(show_intermediate)
-            step_ui["lbl_pass"].Enable(show_intermediate)
-            step_ui["lbl_keep"].Enable(show_intermediate)
-            step_ui["rename_container"].Enable(show_intermediate)
-            if show_intermediate:
-                step_ui["lbl_keep"].Show()
-                step_ui["rename_container"].Show()
-                step_ui["lbl_pass"].Show()
-                step_ui["cb_pass"].Show()
-            else:
-                step_ui["lbl_keep"].Hide()
-                step_ui["rename_container"].Hide()
-                step_ui["lbl_pass"].Hide()
-                step_ui["cb_pass"].Hide()
-
-    def update_chain_rename_fields(self):
-        self.chain_rename_sizer.Clear(True)
-        self.chain_rename_fields = {}
-        
-        if not self.steps:
-            return
+            step_ui["cb_pass"].Show(not is_last)
+            step_ui["lbl_pass"].Show(not is_last)
+            step_ui["lbl_keep"].Show(True)
+            step_ui["rename_container"].Show(True)
             
-        last_step = self.steps[-1]
-        model = last_step["cb_model"].GetValue()
-        stems = self.get_model_stems(model)
-        
-        grid = wx.FlexGridSizer(cols=2, hgap=10, vgap=8)
-        grid.AddGrowableCol(1, 1)
-        
-        for stem in stems:
-            lbl_stem = wx.StaticText(self.chain_rename_container, label=stem)
-            txt_suffix = wx.TextCtrl(self.chain_rename_container)
-            txt_suffix.SetHint(f"e.g. _{stem.capitalize()}")
-            grid.Add(lbl_stem, flag=wx.ALIGN_CENTER_VERTICAL)
-            grid.Add(txt_suffix, flag=wx.EXPAND)
-            self.chain_rename_fields[stem] = txt_suffix
-            
-        self.chain_rename_sizer.Add(grid, flag=wx.EXPAND)
-        self.chain_rename_container.Layout()
-        self.panel_chain.Layout()
-        self.Layout()
-
-
+            if is_last and "keep_controls" in step_ui:
+                for stem, (chk, txt) in step_ui["keep_controls"].items():
+                    chk.SetValue(True)
+                    txt.Enable(True)
+                    
+        self.update_all_source_choices()
 
     def on_save(self, event):
         # 1. Validate name
@@ -450,7 +510,7 @@ class CustomPresetDialog(wx.Dialog):
         
         if preset_type == 0:
             # --- Single Model ---
-            model = self.cb_single_model.GetValue()
+            model = self._resolve(self.cb_single_model.GetStringSelection())
             if not model:
                 wx.MessageBox(self.i18n.tr("preset_error_no_model").format(num=1), self.i18n.tr("msg_error_title"), wx.OK | wx.ICON_ERROR)
                 return
@@ -480,50 +540,49 @@ class CustomPresetDialog(wx.Dialog):
         else:
             # --- Chained Models ---
             config["type"] = "chain"
+            none_label = self.i18n.tr("preset_pass_none")
             
             # We iterate steps
             for i, step_ui in enumerate(self.steps):
                 step_idx = i + 1
-                model = step_ui["cb_model"].GetValue()
+                model = self._resolve(step_ui["cb_model"].GetStringSelection())
                 if not model:
                     wx.MessageBox(self.i18n.tr("preset_error_no_model").format(num=step_idx), self.i18n.tr("msg_error_title"), wx.OK | wx.ICON_ERROR)
                     return
                 
                 config[f"model_{step_idx}"] = model
                 
+                # Source audio for step >= 2
+                if i > 0:
+                    src_val = step_ui.get("source_value", "")
+                    prev_pass_str = self.steps[i-1]["cb_pass"].GetStringSelection()
+                    prev_default = f"step_{i}:{prev_pass_str}"
+                    if src_val and src_val != prev_default:
+                        config[f"m{step_idx}_source"] = src_val
+                
                 # Intermediate steps configuration (all steps except the last)
                 if i < len(self.steps) - 1:
-                    pass_stem = step_ui["cb_pass"].GetString(step_ui["cb_pass"].GetSelection())
-                    # intermediate pass keys: 'pass_stem' for model 1, 'pass_stem_2' for model 2, etc.
-                    pass_key = "pass_stem" if i == 0 else f"pass_stem_{step_idx}"
-                    config[pass_key] = pass_stem
-                    
-                    rename_map = {}
-                    if "keep_controls" in step_ui:
-                        for stem, (chk, txt) in step_ui["keep_controls"].items():
-                            if chk.GetValue():
-                                val = txt.GetValue().strip()
-                                if val:
-                                    if not val.startswith("_"):
-                                        val = f"_{val}"
-                                    rename_map[stem] = val
+                    pass_stem = step_ui["cb_pass"].GetStringSelection()
+                    if pass_stem and pass_stem != none_label:
+                        pass_key = "pass_stem" if i == 0 else f"pass_stem_{step_idx}"
+                        config[pass_key] = pass_stem
+                
+                # Rename map for this step
+                rename_map = {}
+                if "keep_controls" in step_ui:
+                    for stem, (chk, txt) in step_ui["keep_controls"].items():
+                        if chk.GetValue():
+                            val = txt.GetValue().strip()
+                            if val:
+                                if not val.startswith("_"):
+                                    val = f"_{val}"
+                                rename_map[stem] = val
                             else:
-                                rename_map[stem] = None
-                    if rename_map:
-                        config[f"m{step_idx}_rename_map"] = rename_map
-            
-            # Rename map for the very last step in the chain
-            last_idx = len(self.steps)
-            rename_map = {}
-            for stem, field in self.chain_rename_fields.items():
-                val = field.GetValue().strip()
-                if val:
-                    if not val.startswith("_"):
-                        val = f"_{val}"
-                    rename_map[stem] = val
-                    
-            if rename_map:
-                config[f"m{last_idx}_rename_map"] = rename_map
+                                rename_map[stem] = f"_{stem.capitalize()}"
+                        else:
+                            rename_map[stem] = None
+                if rename_map:
+                    config[f"m{step_idx}_rename_map"] = rename_map
                 
         # Save preset via manager
         self.preset_key = PresetManager.save_custom_preset(name, config)

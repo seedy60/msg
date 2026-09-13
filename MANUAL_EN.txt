@@ -1,6 +1,6 @@
 ===============================================================================
                        MUSIC SEPARATOR - USER MANUAL                       
-                       ENGLISH MANUAL (EN) - v1.7
+                       ENGLISH MANUAL (EN) - v1.8
 ===============================================================================
 
 Welcome to Music separator, a powerful AI-driven audio separation tool based on 
@@ -28,8 +28,22 @@ macOS (Apple Silicon M1/M2/M3/M4):
 - NOTE: FFmpeg is included in the package. If you face permission issues, 
   refer to the README for 'xattr' command instructions.
 
-2. WHAT'S NEW in v1.7
+2. WHAT'S NEW in v1.8
 -------------------------------------------------------------------------------
+- Branched & Tree-Structured Custom Presets (Fork / Tree Pipelines):
+  Custom presets now support non-linear separation chains. Starting from step 2,
+  you can select any stem generated in earlier passes (or the original input)
+  as your audio source, stop a branch with 'None (end of this branch)', and
+  independently save and rename stems produced at any step.
+- Enhanced VoiceOver Accessibility on macOS: Replaced all fixed dropdown controls
+  with native wx.Choice (NSPopUpButton) widgets, providing seamless screen reader
+  reading and navigation.
+- Automatic Model Name Resolution: Prevents unsupported model file errors when
+  saving custom presets using descriptive catalog titles.
+- Audio Normalization & Auto-Updater Stability: Fixed UnboundLocalError during
+  -0.1 dBFS normalization and eliminated extraction loops with wrapped 7z updates.
+
+WHAT'S NEW in v1.7:
 - Command-Line Interface (CLI / Headless): You can now use Music Separator directly
   from the terminal or command prompt for automated pipelines, DAW scripts, and
   headless servers without launching the graphical user interface.
@@ -87,11 +101,18 @@ will process the file with both and fuse the results.
 The "Preset" dropdown allows you to run "Chained" processes where the output 
 of one model is automatically fed into another.
 
-CREATING CUSTOM PRESETS:
+CREATING CUSTOM PRESETS (LINEAR AND BRANCHED TREE PIPELINES):
 - Click the "Create Preset" button next to the preset dropdown to open the Creator Dialog.
 - Set a Name and choose between "Single Model" or "Chained Models".
-- Add steps, select models, define which stem to pass, and use the checklist grid to choose which other stems to keep and their custom suffixes.
-- Save your preset. It will instantly appear in the preset dropdown.
+- Linear or Branched Workflows:
+  * Audio Source: Starting from Step 2, you can choose which audio track feeds into
+    each step (leave default for standard sequential linear flow, or select any stem
+    generated in previous passes or the original input audio to branch out).
+  * Pass Stem: Select which stem forwards into the next pass, or choose 'None (end of this branch)'
+    to terminate an intermediate branch without passing audio downstream.
+  * Stems to Keep and Rename: For each pass, select which stems to save to disk and
+    specify custom filename suffixes (e.g. _Lead_Dry).
+- Save your preset. It will instantly appear in the preset dropdown and handle audio routing automatically.
 - To delete, select your custom preset and click the "X" button next to it.
 
 IMPORTING & EXPORTING PRESETS:
